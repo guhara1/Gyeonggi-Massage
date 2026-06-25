@@ -16,9 +16,22 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import datetime
+
 from content import PAGES
 from content.site import (BASE_URL, BRAND, NAV, PHONE, PHONE_DISPLAY,
-                          TELEGRAM_BUILD, TELEGRAM_PARTNER)
+                          TELEGRAM_BUILD, TELEGRAM_PARTNER,
+                          INDEXNOW_KEY, COURSE_PRICES)
+from content import reviews as _reviews
+
+BUILD_DATE = datetime.date.today().isoformat()
+# Service 스키마를 넣지 않을 페이지(정책/고객센터)
+SERVICE_EXCLUDE = {"support/", "support/privacy/"}
+# 비(非)지역 페이지의 areaServed 기본값으로 쓸 크럼 라벨(지역명이 아님)
+_NON_AREA_CRUMBS = {
+    "지하철역 안내", "생활권 안내", "예약 안내", "이용 전 확인사항",
+    "요금 안내", "이용 가이드", "고객센터", "개인정보처리방침", "권역 안내",
+}
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 # Cloudflare Pages가 빌드를 실행하지 않고 저장소 루트를 그대로 배포하므로
@@ -188,6 +201,40 @@ def make_webpage_schema(title: str, desc: str, canonical: str, with_image: bool)
     return obj
 
 
+def make_service_schema(area_name: str) -> dict:
+    """지역별 Service 스키마 — 제공 서비스·요금(Offer)·(선택)리뷰·평점."""
+    base = BASE_URL.rstrip("/")
+    offers = [
+        {"@type": "Offer", "name": name, "price": price,
+         "priceCurrency": "KRW", "category": "방문 관리"}
+        for name, price in COURSE_PRICES
+    ]
+    prices = [int(p) for _, p in COURSE_PRICES]
+    obj = {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "serviceType": "출장마사지·홈타이 방문 관리",
+        "name": f"{area_name} 출장마사지·홈타이",
+        "provider": {"@id": base + "/#organization"},
+        "areaServed": {"@type": "AdministrativeArea", "name": area_name},
+        "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "KRW",
+            "lowPrice": str(min(prices)),
+            "highPrice": str(max(prices)),
+            "offerCount": str(len(offers)),
+            "offers": offers,
+        },
+    }
+    agg = _reviews.aggregate()
+    if agg:
+        obj["aggregateRating"] = {"@type": "AggregateRating", **agg}
+        rv = _reviews.review_schema_list()
+        if rv:
+            obj["review"] = rv
+    return obj
+
+
 def make_image_schema(caption: str) -> dict:
     """선호 썸네일 지정용 ImageObject (schema.org + og:image 동시 사용)."""
     base = BASE_URL.rstrip("/")
@@ -258,6 +305,13 @@ def render_page(page: dict) -> str:
             blocks.append(make_breadcrumb_schema(crumbs))
     if has_image:
         blocks.append(make_image_schema(img_caption))
+    # Service 스키마(요금·서비스·선택적 리뷰) — 지역/서비스 페이지에 적용
+    if path not in SERVICE_EXCLUDE:
+        if crumbs and crumbs[-1][0] not in _NON_AREA_CRUMBS:
+            area_name = crumbs[-1][0].replace(" 생활권", "")
+        else:
+            area_name = "경기도"
+        blocks.append(make_service_schema(area_name))
     auto_schema = "".join(_ld(b) for b in blocks)
 
     return f"""<!DOCTYPE html>
@@ -393,12 +447,17 @@ def build() -> None:
         chars = text_length(page["body"])
         noindex = page.get("noindex", False) or chars < MIN_INDEX_CHARS
         if not noindex:
-            sitemap_urls.append(BASE_URL.rstrip("/") + "/" + path)
+            sitemap_urls.append((BASE_URL.rstrip("/") + "/" + path,
+                                 page["title"], page["desc"]))
         report.append((path or "/", chars, "noindex" if noindex else "index"))
 
-    # sitemap.xml
+    base = BASE_URL.rstrip("/")
+
+    # sitemap.xml (lastmod 포함)
     urls = "\n".join(
-        f"  <url><loc>{u}</loc></url>" for u in sitemap_urls
+        f"  <url><loc>{u}</loc><lastmod>{BUILD_DATE}</lastmod>"
+        f"<changefreq>weekly</changefreq></url>"
+        for u, _t, _d in sitemap_urls
     )
     with open(os.path.join(PUBLIC_DIR, "sitemap.xml"), "w", encoding="utf-8") as f:
         f.write(
@@ -407,12 +466,45 @@ def build() -> None:
             f"{urls}\n</urlset>\n"
         )
 
-    # robots.txt
+    # rss.xml — 구글·빙이 사이트맵으로도 인식하는 RSS 2.0 피드
+    rfc = datetime.datetime.now(datetime.timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    items = "\n".join(
+        "  <item>"
+        f"<title>{html.escape(t)}</title>"
+        f"<link>{u}</link>"
+        f"<guid isPermaLink=\"true\">{u}</guid>"
+        f"<description>{html.escape(d)}</description>"
+        f"<pubDate>{rfc}</pubDate>"
+        "</item>"
+        for u, t, d in sitemap_urls
+    )
+    with open(os.path.join(PUBLIC_DIR, "rss.xml"), "w", encoding="utf-8") as f:
+        f.write(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<rss version="2.0"><channel>\n'
+            f"<title>{html.escape(BRAND)} — 경기도 출장마사지·홈타이 지역 안내</title>\n"
+            f"<link>{base}/</link>\n"
+            "<description>경기 전지역 시·군·생활권·역세권별 방문 관리 안내</description>\n"
+            "<language>ko</language>\n"
+            f"<lastBuildDate>{rfc}</lastBuildDate>\n"
+            f"{items}\n</channel></rss>\n"
+        )
+
+    # robots.txt — 구글·네이버(Yeti)·빙 명시 허용 + 사이트맵·RSS
     with open(os.path.join(PUBLIC_DIR, "robots.txt"), "w", encoding="utf-8") as f:
         f.write(
             "User-agent: *\nAllow: /\n\n"
-            f"Sitemap: {BASE_URL.rstrip('/')}/sitemap.xml\n"
+            "User-agent: Googlebot\nAllow: /\n\n"
+            "User-agent: Yeti\nAllow: /\n\n"
+            "User-agent: bingbot\nAllow: /\n\n"
+            "User-agent: Yeti-Mobile\nAllow: /\n\n"
+            f"Sitemap: {base}/sitemap.xml\n"
+            f"Sitemap: {base}/rss.xml\n"
         )
+
+    # IndexNow 키 파일 (빙·네이버·얀덱스 즉시 색인 통보용 소유확인)
+    with open(os.path.join(PUBLIC_DIR, f"{INDEXNOW_KEY}.txt"), "w", encoding="utf-8") as f:
+        f.write(INDEXNOW_KEY + "\n")
 
     # .nojekyll (GitHub Pages)
     open(os.path.join(PUBLIC_DIR, ".nojekyll"), "w").close()

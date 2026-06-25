@@ -1,4 +1,17 @@
 User-agent: *
 Allow: /
 
+User-agent: Googlebot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: bingbot
+Allow: /
+
+User-agent: Yeti-Mobile
+Allow: /
+
 Sitemap: https://gyeonggi-massage.pages.dev/sitemap.xml
+Sitemap: https://gyeonggi-massage.pages.dev/rss.xml

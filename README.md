@@ -51,3 +51,24 @@ python3 build.py
 
 `content/data.py`의 `DONG_PAGES`, `STATIONS`, `LIFE_AREAS`에 항목을 추가하면
 페이지가 자동 생성됩니다. 실제 유입(GSC 데이터)을 확인하며 단계적으로 확장하세요.
+
+## 색인(인덱싱) & 구조화 데이터
+
+### 스키마 (모든 지역 페이지)
+- `Organization`, `WebPage`(primaryImageOfPage), `BreadcrumbList`, `FAQPage`, `ImageObject`
+- `Service` + `AggregateOffer`/`Offer` — 60·90·120분 코스 **가격** 포함
+- `AggregateRating` + `Review` — **실제 후기 전용**. `content/reviews.py` 에 실제 후기를
+  넣고 `ENABLE_REVIEWS = True` 로 바꾸면 자동 적용. (가짜 후기는 정책 위반·패널티 위험)
+
+### 사이트맵 / RSS / robots
+- `sitemap.xml` (lastmod·changefreq 포함), `rss.xml` (RSS 2.0, 사이트맵으로도 제출 가능)
+- `robots.txt` — Googlebot·Yeti(네이버)·bingbot 명시 허용 + 사이트맵·RSS
+
+### 가장 빠른 색인 통보
+- **IndexNow** (빙·네이버·얀덱스 즉시 통보): 루트에 키 파일 `{KEY}.txt` 자동 생성
+  - 첫 일괄 통보: `python3 tools/indexnow.py`
+  - 글 올릴 때마다: `python3 tools/indexnow.py https://gyeonggi-massage.pages.dev/<경로>/`
+- **구글**(IndexNow 미참여):
+  - 권장: 구글 서치콘솔에 사이트 등록 + `sitemap.xml` 제출
+  - 선택: `tools/google_indexing.py` (서비스 계정 필요, 일 200건 쿼터)
+- **네이버**: 서치어드바이저 등록 + 사이트맵 제출 (IndexNow 로도 통보됨)

@@ -14,6 +14,16 @@ EDITOR_ROLE = "경기 전지역 방문 관리 예약 안내"
 TELEGRAM_BUILD = "https://t.me/googleseolab"   # 웹사이트 제작문의
 TELEGRAM_PARTNER = "https://t.me/googleseolab"  # 제휴문의
 
+# IndexNow 키 (빙·네이버·얀덱스 즉시 색인 통보). 루트에 {KEY}.txt 키 파일 생성됨.
+INDEXNOW_KEY = "7bfc4b537de5f43a0f709ee3576a91a3"
+
+# 코스별 요금 (스키마 Offer·요금표 공통 소스)
+COURSE_PRICES = [
+    ("60분 코스", "90000"),
+    ("90분 코스", "150000"),
+    ("120분 코스", "180000"),
+]
+
 # 상단 메뉴 — 키워드("출장마사지") 반복 없음. 지역명·역명·생활권명만 노출한다.
 NAV = [
     ("경기도 홈", "/", []),
