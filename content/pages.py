@@ -259,7 +259,7 @@ def build_city(slug, c):
              + faq_schema(faqs))
 
     desc = _desc(f"{short} 출장마사지·홈타이 예약 전 {', '.join(c['life'][:4])} 생활권 방문 지역을 확인하세요.")
-    title = f"{short} 출장마사지｜{'·'.join(c['life'][:4])} 생활권 안내"
+    title = f"{short} 출장마사지·홈타이｜{'·'.join(c['life'][:2])} 생활권 안내"
     return {
         "path": f"{slug}/",
         "title": title,
@@ -347,7 +347,7 @@ def build_gu(city_slug, gu_slug, gu_name):
                  f"{', '.join(dong_names[:3]) if dong_names else short} 생활권을 확인하세요.")
     return {
         "path": f"{city_slug}/{gu_slug}/",
-        "title": f"{short} {gu_name} 출장마사지｜대표 동·생활권 안내",
+        "title": f"{short} {gu_name} 출장마사지·홈타이｜대표 동·생활권 안내",
         "desc": desc,
         "h1": f"{name} {gu_name} 출장마사지",
         "breadcrumb": [("경기도", "/"), (grp["name"], f"/{grp['slug']}/"),
@@ -456,7 +456,7 @@ def build_dong(slug, dname, city_slug, gu_slug, near_st, near_dong):
     indexable = (city_slug, dname) in EXPLICIT_DONG_KEYS or bool(near_st)
     return {
         "path": path,
-        "title": f"{dname} 출장마사지｜{short} {dname} 생활권 안내",
+        "title": f"{dname} 출장마사지·홈타이｜{short} 생활권 안내",
         "desc": desc,
         "h1": f"{dname} 출장마사지",
         "noindex": not indexable,
@@ -521,7 +521,7 @@ def build_station(slug, sname, city_slug, lines, areas, nearby_cities):
     desc = _desc(f"{sname} 출장마사지·홈타이 예약 전 {', '.join(areas[:3])} 인접 생활권을 확인하세요.")
     return {
         "path": f"station/{slug}/",
-        "title": f"{sname} 출장마사지｜{'·'.join(areas[:2])} 생활권 안내",
+        "title": f"{sname} 출장마사지·홈타이｜{'·'.join(areas[:2])} 생활권 안내",
         "desc": desc,
         "h1": f"{sname} 출장마사지",
         "breadcrumb": [("경기도", "/"), ("지하철역 안내", "/station/"),
@@ -577,7 +577,7 @@ def build_life(slug, lname, city_slug, areas, stations, role):
     desc = _desc(f"{lname} 생활권 출장마사지·홈타이 예약 전 {', '.join(areas[:3])} 방문 지역을 확인하세요.")
     return {
         "path": f"life/{slug}/",
-        "title": f"{lname} 생활권 출장마사지 안내｜{short}",
+        "title": f"{lname} 생활권 출장마사지·홈타이 안내｜{short}",
         "desc": desc,
         "h1": f"{lname} 생활권 출장마사지 안내",
         "breadcrumb": [("경기도", "/"), ("생활권 안내", "/life/"),
@@ -647,7 +647,7 @@ def build_region(group_slug):
                  f"{', '.join(CITY_SHORT[c] for c in cities[:5])} 생활권을 확인하세요.")
     return {
         "path": f"{group_slug}/",
-        "title": f"{grp['name']} 출장마사지｜{'·'.join(CITY_SHORT[c] for c in cities[:4])} 생활권 안내",
+        "title": f"{grp['name']} 출장마사지·홈타이｜{'·'.join(CITY_SHORT[c] for c in cities[:4])} 생활권 안내",
         "desc": desc,
         "h1": f"{grp['name']} 출장마사지 · 권역별 안내",
         "breadcrumb": [("경기도", "/"), (grp["name"], "")],
@@ -701,7 +701,7 @@ def build_life_hub():
     ]
     return {
         "path": "life/",
-        "title": "경기도 생활권 안내｜시·군·역세권 연결 출장마사지 안내",
+        "title": "경기도 생활권 안내｜시·군·역세권 연결 출장마사지·홈타이",
         "desc": _desc("경기도 생활권별 출장마사지·홈타이 연결 지역과 역세권, 방문 기준을 확인하세요."),
         "h1": "경기도 생활권별 안내",
         "breadcrumb": [("경기도", "/"), ("생활권 안내", "")],
