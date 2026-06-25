@@ -142,7 +142,10 @@ def _build_main():
     }
     _ld = lambda o: ('<script type="application/ld+json">\n'
                      + json.dumps(o, ensure_ascii=False, indent=2) + "\n</script>\n")
-    extra = _ld(webpage) + faq_schema(faqs)
+    # 네이버 서치어드바이저 사이트 소유확인 (메인페이지)
+    naver = ('<meta name="naver-site-verification" '
+             'content="ca8b0a8b083cdf1b38cc150ac16569a156bcf0c6" />\n')
+    extra = naver + _ld(webpage) + faq_schema(faqs)
 
     return {
         "path": "",
