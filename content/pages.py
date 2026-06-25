@@ -191,7 +191,7 @@ def build_city(slug, c):
         "path": f"{slug}/",
         "title": title,
         "desc": desc,
-        "h1": f"{name} 출장마사지 · {short} 홈타이 예약 안내",
+        "h1": f"{name} 출장마사지·홈타이 예약 안내",
         "breadcrumb": [("경기도", "/"), (grp["name"], f"/{grp['slug']}/"),
                        (name, "")],
         "body": "\n".join(body),
