@@ -10,13 +10,13 @@ CITY_NAME = {s: c["name"] for s, c in CITIES.items()}
 CITY_SHORT = {s: c["short"] for s, c in CITIES.items()}
 
 STATION_BY_NAME = {name: slug for slug, name, *_ in STATIONS}
-STATION_PATH = {slug: f"/gyeonggi/station/{slug}/" for slug, *_ in STATIONS}
+STATION_PATH = {slug: f"/station/{slug}/" for slug, *_ in STATIONS}
 STATIONS_BY_CITY = {}
 for _slug, _name, _city, *_rest in STATIONS:
     STATIONS_BY_CITY.setdefault(_city, []).append((_slug, _name))
 
 LIFE_BY_NAME = {name: slug for slug, name, *_ in LIFE_AREAS}
-LIFE_PATH = {slug: f"/gyeonggi/life/{slug}/" for slug, *_ in LIFE_AREAS}
+LIFE_PATH = {slug: f"/life/{slug}/" for slug, *_ in LIFE_AREAS}
 LIFE_BY_CITY = {}
 for _slug, _name, _city, *_rest in LIFE_AREAS:
     LIFE_BY_CITY.setdefault(_city, []).append((_slug, _name))
@@ -27,7 +27,7 @@ DONG_NAME = {}      # slug -> name
 DONG_BY_KEY = {}    # (city, name) -> (slug, path)
 for _d in DONG_PAGES:
     _slug, _name, _city, _gu = _d[0], _d[1], _d[2], _d[3]
-    _p = f"/gyeonggi/{_city}/{_gu}/{_slug}/" if _gu else f"/gyeonggi/{_city}/{_slug}/"
+    _p = f"/{_city}/{_gu}/{_slug}/" if _gu else f"/{_city}/{_slug}/"
     DONG_PATH[_slug] = _p
     DONG_NAME[_slug] = _name
     DONG_BY_KEY[(_city, _name)] = (_slug, _p)
@@ -35,7 +35,7 @@ for _d in DONG_PAGES:
 
 # ---------- 링크 헬퍼 ----------
 def city_link(slug):
-    return f'<a href="/gyeonggi/{slug}/">{CITY_NAME[slug]}</a>'
+    return f'<a href="/{slug}/">{CITY_NAME[slug]}</a>'
 
 
 def station_link(name):
@@ -128,7 +128,7 @@ def build_city(slug, c):
 
     # 일반구 또는 대표 동
     if c["gu"]:
-        items = [(f"/gyeonggi/{slug}/{gslug}/", gname, "구별 대표 동·생활권 안내")
+        items = [(f"/{slug}/{gslug}/", gname, "구별 대표 동·생활권 안내")
                  for gslug, gname in c["gu"]]
         body.append(f'<section id="gu"><h2>{name} 일반구 안내</h2>'
                     f"<p>{name}는 {len(c['gu'])}개 일반구로 나뉘며, 각 구는 시 전체와 대표 동을 잇는 "
@@ -154,7 +154,7 @@ def build_city(slug, c):
     body.append(f'<section id="nearby"><h2>인접 시·군 안내</h2>'
                 f"<p>{short}과 생활권이 맞닿은 인접 시·군입니다: {near_links}. "
                 "경계 지역은 가까운 쪽 생활권으로 안내받는 것이 빠릅니다.</p>"
-                f'<p><a href="/gyeonggi/{grp["slug"]}/">{grp["name"]} 권역 전체 안내</a>에서 '
+                f'<p><a href="/{grp["slug"]}/">{grp["name"]} 권역 전체 안내</a>에서 '
                 "다른 시·군도 함께 확인할 수 있습니다.</p></section>")
 
     # 확인사항
@@ -188,11 +188,11 @@ def build_city(slug, c):
     desc = _desc(f"{short} 출장마사지·홈타이 예약 전 {', '.join(c['life'][:4])} 생활권 방문 지역을 확인하세요.")
     title = f"{short} 출장마사지｜{'·'.join(c['life'][:4])} 생활권 안내"
     return {
-        "path": f"gyeonggi/{slug}/",
+        "path": f"{slug}/",
         "title": title,
         "desc": desc,
         "h1": f"{name} 출장마사지 · {short} 홈타이 예약 안내",
-        "breadcrumb": [("경기도", "/gyeonggi/"), (grp["name"], f"/gyeonggi/{grp['slug']}/"),
+        "breadcrumb": [("경기도", "/"), (grp["name"], f"/{grp['slug']}/"),
                        (name, "")],
         "body": "\n".join(body),
         "extra_head": extra,
@@ -215,7 +215,7 @@ def build_gu(city_slug, gu_slug, gu_name):
         f"어느 동에 속하는지 먼저 확인하는 것이 좋습니다. 아래 대표 동 안내에서 {gu_name}의 주요 "
         "생활권을 확인하고, 가까운 동·역을 기준으로 예약하시면 방문이 한결 수월합니다. "
         "자택·숙소·오피스텔·호텔 등 다양한 장소로 방문 가능합니다.</p>",
-        f'<p><a href="/gyeonggi/{city_slug}/">{name} 전체 안내</a>와 함께 보면 생활권을 '
+        f'<p><a href="/{city_slug}/">{name} 전체 안내</a>와 함께 보면 생활권을 '
         "더 쉽게 파악할 수 있습니다.</p></section>",
     ]
 
@@ -243,7 +243,7 @@ def build_gu(city_slug, gu_slug, gu_name):
 
     other_gu = [(gs, gn) for gs, gn in c["gu"] if gs != gu_slug]
     if other_gu:
-        links = " · ".join(f'<a href="/gyeonggi/{city_slug}/{gs}/">{gn}</a>' for gs, gn in other_gu)
+        links = " · ".join(f'<a href="/{city_slug}/{gs}/">{gn}</a>' for gs, gn in other_gu)
         body.append(f'<section><h2>{name} 다른 구 안내</h2><p>{links}</p></section>')
 
     body.append(f'<section><h2>{gu_name} 예약 전 확인사항</h2>{CHECK_LIST}</section>')
@@ -267,12 +267,12 @@ def build_gu(city_slug, gu_slug, gu_name):
     desc = _desc(f"{short} {gu_name} 출장마사지·홈타이 예약 전 "
                  f"{', '.join(dong_names[:3]) if dong_names else short} 생활권을 확인하세요.")
     return {
-        "path": f"gyeonggi/{city_slug}/{gu_slug}/",
+        "path": f"{city_slug}/{gu_slug}/",
         "title": f"{short} {gu_name} 출장마사지｜대표 동·생활권 안내",
         "desc": desc,
         "h1": f"{name} {gu_name} 출장마사지",
-        "breadcrumb": [("경기도", "/gyeonggi/"), (grp["name"], f"/gyeonggi/{grp['slug']}/"),
-                       (name, f"/gyeonggi/{city_slug}/"), (gu_name, "")],
+        "breadcrumb": [("경기도", "/"), (grp["name"], f"/{grp['slug']}/"),
+                       (name, f"/{city_slug}/"), (gu_name, "")],
         "body": "\n".join(body),
         "extra_head": faq_schema(faqs),
     }
@@ -325,7 +325,7 @@ def build_dong(slug, dname, city_slug, gu_slug, near_st, near_dong):
                 f"{near_dong_links}.</p></section>")
 
     # 상위 링크
-    up = f'<a href="/gyeonggi/{city_slug}/{gu_slug}/">{gu_name}</a>' if gu_name else city_link(city_slug)
+    up = f'<a href="/{city_slug}/{gu_slug}/">{gu_name}</a>' if gu_name else city_link(city_slug)
     body.append(f'<section><h2>상위 지역 안내</h2><p>{dname}은 {up} 생활권에 속합니다. '
                 f"{city_link(city_slug)} 전체 안내에서 다른 생활권도 확인하세요.</p></section>")
 
@@ -345,12 +345,12 @@ def build_dong(slug, dname, city_slug, gu_slug, near_st, near_dong):
     body.append(faq_block(faqs, f"{dname} 자주 묻는 질문"))
 
     desc = _desc(f"{dname} 출장마사지·홈타이 예약 전 {st_txt} 인접 생활권과 방문 기준을 확인하세요.")
-    crumb = [("경기도", "/gyeonggi/"), (grp["name"], f"/gyeonggi/{grp['slug']}/"),
-             (name, f"/gyeonggi/{city_slug}/")]
+    crumb = [("경기도", "/"), (grp["name"], f"/{grp['slug']}/"),
+             (name, f"/{city_slug}/")]
     if gu_name:
-        crumb.append((gu_name, f"/gyeonggi/{city_slug}/{gu_slug}/"))
+        crumb.append((gu_name, f"/{city_slug}/{gu_slug}/"))
     crumb.append((dname, ""))
-    path = f"gyeonggi/{city_slug}/{gu_slug}/{slug}/" if gu_slug else f"gyeonggi/{city_slug}/{slug}/"
+    path = f"{city_slug}/{gu_slug}/{slug}/" if gu_slug else f"{city_slug}/{slug}/"
     return {
         "path": path,
         "title": f"{dname} 출장마사지｜{short} {dname} 생활권 안내",
@@ -416,11 +416,11 @@ def build_station(slug, sname, city_slug, lines, areas, nearby_cities):
 
     desc = _desc(f"{sname} 출장마사지·홈타이 예약 전 {', '.join(areas[:3])} 인접 생활권을 확인하세요.")
     return {
-        "path": f"gyeonggi/station/{slug}/",
+        "path": f"station/{slug}/",
         "title": f"{sname} 출장마사지｜{'·'.join(areas[:2])} 생활권 안내",
         "desc": desc,
         "h1": f"{sname} 출장마사지",
-        "breadcrumb": [("경기도", "/gyeonggi/"), ("지하철역 안내", "/gyeonggi/station/"),
+        "breadcrumb": [("경기도", "/"), ("지하철역 안내", "/station/"),
                        (sname, "")],
         "body": "\n".join(body),
         "extra_head": faq_schema(faqs),
@@ -453,7 +453,7 @@ def build_life(slug, lname, city_slug, areas, stations, role):
     if st_links:
         body.append(f'<section><h2>연결 역</h2><p>{lname} 생활권과 연결되는 역: {st_links}.</p></section>')
     body.append(f'<section><h2>관련 시·군</h2><p>{lname} 생활권은 {city_link(city_slug)}에 속하며, '
-                f'<a href="/gyeonggi/{grp["slug"]}/">{grp["name"]} 권역</a>에서 다른 생활권도 '
+                f'<a href="/{grp["slug"]}/">{grp["name"]} 권역</a>에서 다른 생활권도 '
                 "확인할 수 있습니다.</p></section>")
     body.append(f'<section><h2>{lname} 예약 전 확인사항</h2>{CHECK_LIST}</section>')
     body.append(byline())
@@ -472,11 +472,11 @@ def build_life(slug, lname, city_slug, areas, stations, role):
 
     desc = _desc(f"{lname} 생활권 출장마사지·홈타이 예약 전 {', '.join(areas[:3])} 방문 지역을 확인하세요.")
     return {
-        "path": f"gyeonggi/life/{slug}/",
+        "path": f"life/{slug}/",
         "title": f"{lname} 생활권 출장마사지 안내｜{short}",
         "desc": desc,
         "h1": f"{lname} 생활권 출장마사지 안내",
-        "breadcrumb": [("경기도", "/gyeonggi/"), ("생활권 안내", "/gyeonggi/life/"),
+        "breadcrumb": [("경기도", "/"), ("생활권 안내", "/life/"),
                        (lname, "")],
         "body": "\n".join(body),
         "extra_head": faq_schema(faqs),
@@ -490,7 +490,7 @@ def build_region(group_slug):
     items = []
     for cs in cities:
         c = CITIES[cs]
-        items.append((f"/gyeonggi/{cs}/", c["name"], "·".join(c["life"][:3]) + " 생활권"))
+        items.append((f"/{cs}/", c["name"], "·".join(c["life"][:3]) + " 생활권"))
 
     # 권역 특성 설명 (남/북 구분)
     if group_slug == "south":
@@ -535,18 +535,18 @@ def build_region(group_slug):
     body.append(f'<section><h2>{grp["name"]} 예약 전 확인사항</h2>{CHECK_LIST}</section>')
     other = "north" if group_slug == "south" else "south"
     body.append(f'<section><h2>다른 권역</h2><p>'
-                f'<a href="/gyeonggi/{other}/">{REGION_GROUPS[other]["name"]} 안내</a> '
-                "및 <a href=\"/gyeonggi/\">경기도 전체 안내</a>도 함께 확인하세요.</p></section>")
+                f'<a href="/{other}/">{REGION_GROUPS[other]["name"]} 안내</a> '
+                "및 <a href=\"/\">경기도 전체 안내</a>도 함께 확인하세요.</p></section>")
     body.append(byline())
 
     desc = _desc(f"{grp['name']} 출장마사지·홈타이 예약 전 "
                  f"{', '.join(CITY_SHORT[c] for c in cities[:5])} 생활권을 확인하세요.")
     return {
-        "path": f"gyeonggi/{group_slug}/",
+        "path": f"{group_slug}/",
         "title": f"{grp['name']} 출장마사지｜{'·'.join(CITY_SHORT[c] for c in cities[:4])} 생활권 안내",
         "desc": desc,
         "h1": f"{grp['name']} 출장마사지 · 권역별 안내",
-        "breadcrumb": [("경기도", "/gyeonggi/"), (grp["name"], "")],
+        "breadcrumb": [("경기도", "/"), (grp["name"], "")],
         "body": "\n".join(body),
     }
 
@@ -565,16 +565,16 @@ def build_station_hub():
         f"<a href=\"/check/\">이용 전 확인사항</a>에서 확인하세요.</p></section>",
         '<section><h2>역명으로 찾기</h2>' + _cards(items) + "</section>",
         '<section><h2>권역·생활권으로 찾기</h2><p>'
-        '<a href="/gyeonggi/south/">경기남부</a> · <a href="/gyeonggi/north/">경기북부</a> 권역과 '
-        '<a href="/gyeonggi/life/">생활권 안내</a>에서도 지역을 찾을 수 있습니다.</p></section>',
+        '<a href="/south/">경기남부</a> · <a href="/north/">경기북부</a> 권역과 '
+        '<a href="/life/">생활권 안내</a>에서도 지역을 찾을 수 있습니다.</p></section>',
         byline(),
     ]
     return {
-        "path": "gyeonggi/station/",
+        "path": "station/",
         "title": "경기도 지하철역 안내｜역세권별 출장마사지·홈타이 생활권",
         "desc": _desc("경기도 지하철역별 출장마사지·홈타이 인접 생활권과 방문 지역을 확인하세요."),
         "h1": "경기도 지하철역별 안내",
-        "breadcrumb": [("경기도", "/gyeonggi/"), ("지하철역 안내", "")],
+        "breadcrumb": [("경기도", "/"), ("지하철역 안내", "")],
         "body": "\n".join(body),
     }
 
@@ -591,16 +591,16 @@ def build_life_hub():
         "연결 역, 예약 전 확인사항을 확인할 수 있습니다.</p></section>",
         '<section><h2>생활권으로 찾기</h2>' + _cards(items) + "</section>",
         '<section><h2>시·군·역세권으로 찾기</h2><p>'
-        '<a href="/gyeonggi/">경기도 전체 안내</a>와 '
-        '<a href="/gyeonggi/station/">지하철역 안내</a>에서도 지역을 찾을 수 있습니다.</p></section>',
+        '<a href="/">경기도 전체 안내</a>와 '
+        '<a href="/station/">지하철역 안내</a>에서도 지역을 찾을 수 있습니다.</p></section>',
         byline(),
     ]
     return {
-        "path": "gyeonggi/life/",
+        "path": "life/",
         "title": "경기도 생활권 안내｜시·군·역세권 연결 출장마사지 안내",
         "desc": _desc("경기도 생활권별 출장마사지·홈타이 연결 지역과 역세권, 방문 기준을 확인하세요."),
         "h1": "경기도 생활권별 안내",
-        "breadcrumb": [("경기도", "/gyeonggi/"), ("생활권 안내", "")],
+        "breadcrumb": [("경기도", "/"), ("생활권 안내", "")],
         "body": "\n".join(body),
     }
 

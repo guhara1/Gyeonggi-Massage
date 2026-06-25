@@ -1,4 +1,4 @@
-# 경기도 메인 페이지 (/gyeonggi/)
+# 경기도 메인 페이지 (/)
 import json
 from .site import PHONE, PHONE_DISPLAY, BASE_URL
 from .data import REGION_GROUPS, CITIES
@@ -32,7 +32,7 @@ _HERO = """<div class="hero">
 
 def _city_card(slug):
     c = CITIES[slug]
-    return (f"/gyeonggi/{slug}/", c["name"], "·".join(c["life"][:3]) + " 생활권")
+    return (f"/{slug}/", c["name"], "·".join(c["life"][:3]) + " 생활권")
 
 
 def _build_main():
@@ -41,9 +41,9 @@ def _build_main():
 
     # 권역 카드
     region_cards = _cards([
-        ("/gyeonggi/south/", "경기남부",
+        ("/south/", "경기남부",
          ", ".join(CITY_SHORT[c] for c in south[:7]) + " 등 21개 시·군"),
-        ("/gyeonggi/north/", "경기북부",
+        ("/north/", "경기북부",
          ", ".join(CITY_SHORT[c] for c in north[:7]) + " 등 10개 시·군"),
     ])
 
@@ -132,7 +132,7 @@ def _build_main():
 """
 
     base = BASE_URL.rstrip("/")
-    canonical = base + "/gyeonggi/"
+    canonical = base + "/"
     webpage = {
         "@context": "https://schema.org", "@type": "WebPage",
         "name": "경기도 출장마사지｜수원·분당·용인·부천·일산 홈타이 지역 안내",
@@ -140,22 +140,15 @@ def _build_main():
         "isPartOf": {"@id": base + "/#organization"},
         "publisher": {"@id": base + "/#organization"},
     }
-    breadcrumb = {
-        "@context": "https://schema.org", "@type": "BreadcrumbList",
-        "itemListElement": [
-            {"@type": "ListItem", "position": 1, "name": "홈", "item": base + "/"},
-            {"@type": "ListItem", "position": 2, "name": "경기도", "item": canonical},
-        ],
-    }
     _ld = lambda o: ('<script type="application/ld+json">\n'
                      + json.dumps(o, ensure_ascii=False, indent=2) + "\n</script>\n")
-    extra = (_ld(webpage) + _ld(breadcrumb)
+    extra = (_ld(webpage)
              + image_schema("경기도 출장마사지·홈타이 지역 안내",
                             "경기 31개 시·군 생활권·역세권별 방문 예약 안내")
              + faq_schema(faqs))
 
     return {
-        "path": "gyeonggi/",
+        "path": "",
         "title": "경기도 출장마사지｜수원·분당·용인·부천·일산 홈타이 지역 안내",
         "desc": DESC,
         "h1": "경기도 출장마사지 · 경기 전지역 홈타이 예약 안내",

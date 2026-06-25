@@ -256,7 +256,7 @@ def render_page(page: dict) -> str:
   <div class="header-accent" aria-hidden="true"></div>
   <div class="header-top">
     <div class="header-inner">
-      <a class="brand" href="/gyeonggi/"><span class="brand-mark">B</span> <span class="brand-text">{BRAND}</span></a>
+      <a class="brand" href="/"><span class="brand-mark">B</span> <span class="brand-text">{BRAND}</span></a>
       <p class="header-tagline"><span class="tag-gem">◆</span> 경기 전지역 방문 관리 <span class="tag-gem">◆</span> 24시간 상담</p>
       <a class="header-call" href="tel:{PHONE}"><span class="call-label">예약전화</span> {PHONE_DISPLAY}</a>
       <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -290,11 +290,11 @@ def render_page(page: dict) -> str:
     <nav class="footer-col" aria-label="지역 안내">
       <p class="footer-title">지역 안내</p>
       <ul>
-        <li><a href="/gyeonggi/">경기도 홈</a></li>
-        <li><a href="/gyeonggi/south/">경기남부</a></li>
-        <li><a href="/gyeonggi/north/">경기북부</a></li>
-        <li><a href="/gyeonggi/station/suwon-station/">역세권 안내</a></li>
-        <li><a href="/gyeonggi/life/bundang-pangyo/">생활권 안내</a></li>
+        <li><a href="/">경기도 홈</a></li>
+        <li><a href="/south/">경기남부</a></li>
+        <li><a href="/north/">경기북부</a></li>
+        <li><a href="/station/suwon-station/">역세권 안내</a></li>
+        <li><a href="/life/bundang-pangyo/">생활권 안내</a></li>
       </ul>
     </nav>
     <nav class="footer-col" aria-label="이용 안내">
@@ -373,19 +373,6 @@ def build() -> None:
             "User-agent: *\nAllow: /\n\n"
             f"Sitemap: {BASE_URL.rstrip('/')}/sitemap.xml\n"
         )
-
-    # 루트(/) → /gyeonggi/ 리다이렉트 (경기도 메인이 정식 경로)
-    redirect_html = (
-        '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">'
-        '<title>' + BRAND + ' 경기도 출장마사지</title>'
-        '<link rel="canonical" href="' + BASE_URL.rstrip("/") + '/gyeonggi/">'
-        '<meta http-equiv="refresh" content="0; url=/gyeonggi/">'
-        '<meta name="robots" content="noindex,follow">'
-        '</head><body><p><a href="/gyeonggi/">경기도 출장마사지 안내로 이동</a></p>'
-        '<script>location.replace("/gyeonggi/");</script></body></html>\n'
-    )
-    with open(os.path.join(PUBLIC_DIR, "index.html"), "w", encoding="utf-8") as f:
-        f.write(redirect_html)
 
     # .nojekyll (GitHub Pages)
     open(os.path.join(PUBLIC_DIR, ".nojekyll"), "w").close()
