@@ -21,16 +21,81 @@ LIFE_BY_CITY = {}
 for _slug, _name, _city, *_rest in LIFE_AREAS:
     LIFE_BY_CITY.setdefault(_city, []).append((_slug, _name))
 
+# ---------- 한글→slug 로마자 변환 (행정동 페이지 slug 자동 생성) ----------
+_CHO = ['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h']
+_JUNG = ['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i']
+_JONG = ['','k','k','k','n','n','n','t','l','k','m','l','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','h']
+_SUF = {'동': 'dong', '읍': 'eup', '면': 'myeon', '리': 'ri', '가': 'ga'}
+
+
+def _rom_syl(ch):
+    code = ord(ch) - 0xAC00
+    if code < 0 or code > 11171:
+        return ''
+    return _CHO[code // 588] + _JUNG[(code % 588) // 28] + _JONG[code % 28]
+
+
+def _slugify_dong(name):
+    last = name[-1]
+    if last in _SUF and len(name) > 1:
+        stem, suf = name[:-1], _SUF[last]
+        return (''.join(_rom_syl(c) for c in stem) + '-' + suf) or 'dong'
+    return ''.join(_rom_syl(c) for c in name) or 'dong'
+
+
+# ---------- 행정동 레지스트리 (대표 동 1곳 / 번호 동 통합 / 중복 slug 방지) ----------
+# 1) 손으로 정의한 핵심 동(DONG_PAGES)을 우선 사용하고,
+# 2) 모든 일반구(GU_DONG)·일반구 없는 시(CITY_DONG)의 행정동을 자동 보강해
+#    시→구→동 / 시→동 내부링크가 끊기지 않도록 한다.
+_station_area = {}   # (city, dongname) -> [station name]
+for _s, _n, _c, _l, _areas, _nc in STATIONS:
+    for _a in _areas:
+        _station_area.setdefault((_c, _a), []).append(_n)
+
+ALL_DONG = list(DONG_PAGES)
+EXPLICIT_DONG_KEYS = {(d[2], d[1]) for d in DONG_PAGES}  # 손으로 정의한 핵심 동
+_explicit_keys = EXPLICIT_DONG_KEYS
+_used_slugs = {d[0] for d in DONG_PAGES}
+_seen = set(_explicit_keys)
+
+
+def _add_dong(city, gu, name, siblings):
+    if (city, name) in _seen:
+        return
+    _seen.add((city, name))
+    near_dong = [s for s in siblings if s != name][:3]
+    near_st = _station_area.get((city, name), [])[:2]
+    base = _slugify_dong(name)
+    slug = base
+    if slug in _used_slugs:
+        slug = f"{base}-{city}"
+    if slug in _used_slugs:
+        slug = f"{base}-{gu or city}"
+    _used_slugs.add(slug)
+    ALL_DONG.append((slug, name, city, gu, near_st, near_dong))
+
+
+for (_city, _gu), _dongs in GU_DONG.items():
+    for _nm in _dongs:
+        _add_dong(_city, _gu, _nm, _dongs)
+for _city, _dongs in CITY_DONG.items():
+    if _city not in CITIES:
+        continue
+    for _nm in _dongs:
+        _add_dong(_city, None, _nm, _dongs)
+
 # 동 경로 인덱스
 DONG_PATH = {}      # slug -> path
 DONG_NAME = {}      # slug -> name
 DONG_BY_KEY = {}    # (city, name) -> (slug, path)
-for _d in DONG_PAGES:
+DONG_NEARST = {}    # slug -> [station name]
+for _d in ALL_DONG:
     _slug, _name, _city, _gu = _d[0], _d[1], _d[2], _d[3]
     _p = f"/{_city}/{_gu}/{_slug}/" if _gu else f"/{_city}/{_slug}/"
     DONG_PATH[_slug] = _p
     DONG_NAME[_slug] = _name
     DONG_BY_KEY[(_city, _name)] = (_slug, _p)
+    DONG_NEARST[_slug] = _d[4]
 
 
 # ---------- 링크 헬퍼 ----------
@@ -135,10 +200,18 @@ def build_city(slug, c):
                     "허브 역할을 합니다.</p>" + _cards(items) + "</section>")
     else:
         dong_names = CITY_DONG.get(slug, [])
-        if dong_names:
-            lis = "".join(f"<li>{dong_link(slug, d)}</li>" for d in dong_names)
-            body.append(f'<section id="dong"><h2>{short} 대표 지역 안내</h2>'
-                        f"<p>{short}의 대표 동·읍·면 생활권입니다.</p><ul>{lis}</ul></section>")
+        dong_items = []
+        for d in dong_names:
+            hit = DONG_BY_KEY.get((slug, d))
+            if not hit:
+                continue
+            st = DONG_NEARST.get(hit[0], [])
+            sub = (", ".join(st[:2]) + " 인접") if st else f"{short} 생활권"
+            dong_items.append((hit[1], d, sub))
+        if dong_items:
+            body.append(f'<section id="dong"><h2>{short} 행정동·읍면 안내</h2>'
+                        f"<p>{short}의 대표 행정동·읍·면입니다. 각 지역을 선택하면 인접 역·생활권과 "
+                        "예약 전 확인사항을 확인할 수 있습니다.</p>" + _cards(dong_items) + "</section>")
 
     # 가까운 역
     if st_names:
@@ -220,18 +293,24 @@ def build_gu(city_slug, gu_slug, gu_name):
     ]
 
     if dong_names:
-        lis = "".join(f"<li>{dong_link(city_slug, d)} — {gu_name} 생활권</li>" for d in dong_names)
-        body.append(f'<section><h2>{gu_name} 대표 동</h2>'
-                    f"<p>{gu_name}의 대표 동·생활권입니다.</p><ul>{lis}</ul></section>")
+        dong_items = []
+        for d in dong_names:
+            hit = DONG_BY_KEY.get((city_slug, d))
+            if not hit:
+                continue
+            st = DONG_NEARST.get(hit[0], [])
+            sub = (", ".join(st[:2]) + " 인접") if st else f"{gu_name} 생활권"
+            dong_items.append((hit[1], d, sub))
+        body.append(f'<section><h2>{gu_name} 행정동 안내</h2>'
+                    f"<p>{gu_name}의 행정동(대표 동 기준)입니다. 각 동을 선택하면 인접 역·생활권과 "
+                    "예약 전 확인사항을 확인할 수 있습니다.</p>" + _cards(dong_items) + "</section>")
 
     # 구와 연결되는 역
     gu_stations = []
     for d in dong_names:
         hit = DONG_BY_KEY.get((city_slug, d))
         if hit:
-            for dp in DONG_PAGES:
-                if dp[0] == hit[0]:
-                    gu_stations.extend(dp[4])
+            gu_stations.extend(DONG_NEARST.get(hit[0], []))
     gu_stations = list(dict.fromkeys(gu_stations))
     if gu_stations:
         st_items = [(STATION_PATH[STATION_BY_NAME[n]], n, None)
@@ -287,18 +366,34 @@ def build_dong(slug, dname, city_slug, gu_slug, near_st, near_dong):
     car = c.get("car", False)
 
     loc = f"{name} {gu_name} {dname}" if gu_name else f"{name} {dname}"
-    st_txt = ", ".join(near_st) if near_st else "차량 이동 기준"
+    where = f"{gu_name}에 속한" if gu_name else f"{short} 안의"
+    st_txt = ", ".join(near_st) if near_st else ("차량 이동 기준" if car else "가까운 역 기준")
+    # 동마다 안정적으로 달라지는 변형 인덱스(중복·복사 방지)
+    _vi = sum(ord(ch) for ch in slug)
+    if near_st:
+        access_line = f"가까운 역으로는 {', '.join(near_st)} 등이 있어 방문 접근성이 좋습니다. "
+    elif car:
+        access_line = "지하철역과 거리가 있어 차량 이동 기준과 추가 이동비를 먼저 확인하는 것이 좋습니다. "
+    else:
+        access_line = [
+            "가까운 역과 생활권을 함께 알려 주시면 방문 동선을 빠르게 안내해 드립니다. ",
+            "정확한 위치와 가까운 큰길을 알려 주시면 방문 시간을 줄일 수 있습니다. ",
+            "단지명이나 건물명을 기준으로 가장 빠른 동선을 안내해 드립니다. ",
+        ][_vi % 3]
+    intro_open = [
+        f"{loc}은 {where} 대표 생활권 중 하나입니다. ",
+        f"{loc}은 {short}에서 방문 문의가 꾸준한 생활권입니다. ",
+        f"{loc}은 {where} 주요 주거·생활권으로 꼽힙니다. ",
+    ][_vi % 3]
+    sib_txt = ", ".join(near_dong[:3]) if near_dong else f"{short} 인근"
 
     body = [
         f'<section><h2>{dname} 생활권 안내</h2>',
-        f"<p>{loc}은 {short}의 대표 생활권 중 하나로, "
-        + (f"가까운 역으로는 {', '.join(near_st)} 등이 있어 방문 접근성이 좋습니다. "
-           if near_st else
-           "지하철역과 거리가 있어 차량 이동 기준과 추가 이동비를 먼저 확인하는 것이 좋습니다. ")
+        f"<p>{intro_open}" + access_line
         + f"{dname} 지역으로 예약하실 때는 정확한 주소와 건물 유형, 가장 가까운 역을 함께 알려 "
         "주시면 이동 시간을 줄일 수 있습니다.</p>",
         f"<p>{dname}으로는 자택·숙소·오피스텔 등 다양한 장소로 방문이 가능하며, "
-        f"인접한 {', '.join(near_dong[:3])} 생활권과도 가깝습니다. 예약 전에는 방문 가능 주소와 "
+        f"인접한 {sib_txt} 생활권과도 가깝습니다. 예약 전에는 방문 가능 주소와 "
         "예약 가능 시간, 추가 이동비 여부를 확인해 두면 예약이 한결 수월합니다.</p>",
         f"<p>{dname}은 {short} 안에서도 생활권 경계가 비교적 뚜렷한 편이라, 같은 동 안에서도 "
         "아파트 단지·오피스텔·주택가에 따라 가까운 역과 진입로가 달라집니다. 정확한 단지명이나 "
@@ -315,10 +410,15 @@ def build_dong(slug, dname, city_slug, gu_slug, near_st, near_dong):
                     for n in near_st if n in STATION_BY_NAME]
         if st_items:
             body.append(f'<section><h2>{dname} 가까운 역</h2>' + _cards(st_items) + "</section>")
-    else:
+    elif car:
         body.append(f'<section><h2>{dname} 방문 기준</h2>'
                     f"<p>{dname}은 역세권보다 차량 이동 기준이 중요한 지역입니다. "
                     "차량 진입·주차 가능 여부와 추가 이동비를 예약 시 함께 확인하세요.</p></section>")
+    else:
+        body.append(f'<section><h2>{dname} 방문 기준</h2>'
+                    f"<p>{dname}으로 예약하실 때는 가장 가까운 역이나 큰 도로, 정확한 단지명·"
+                    "건물명을 알려 주시면 방문 동선을 빠르게 안내해 드립니다. 건물 출입 방식과 "
+                    "주차 가능 여부도 함께 확인하면 방문이 한결 원활합니다.</p></section>")
 
     near_dong_links = " · ".join(dong_link(city_slug, d) for d in near_dong)
     body.append(f'<section><h2>인접 지역</h2><p>{dname}과 가까운 인접 지역입니다: '
@@ -351,11 +451,15 @@ def build_dong(slug, dname, city_slug, gu_slug, near_st, near_dong):
         crumb.append((gu_name, f"/{city_slug}/{gu_slug}/"))
     crumb.append((dname, ""))
     path = f"{city_slug}/{gu_slug}/{slug}/" if gu_slug else f"{city_slug}/{slug}/"
+    # 도어웨이·중복 방지: 핵심 동(직접 정의) 또는 역세권 앵커가 있는 동만 색인.
+    # 그 외 자동 보강 동은 noindex,follow — 내부링크로는 연결되지만 색인에서 제외.
+    indexable = (city_slug, dname) in EXPLICIT_DONG_KEYS or bool(near_st)
     return {
         "path": path,
         "title": f"{dname} 출장마사지｜{short} {dname} 생활권 안내",
         "desc": desc,
         "h1": f"{dname} 출장마사지",
+        "noindex": not indexable,
         "breadcrumb": crumb,
         "body": "\n".join(body),
         "extra_head": faq_schema(faqs),
@@ -616,7 +720,7 @@ for _slug, _c in CITIES.items():
     for _gu_slug, _gu_name in _c["gu"]:
         PAGES.append(build_gu(_slug, _gu_slug, _gu_name))
 
-for _d in DONG_PAGES:
+for _d in ALL_DONG:
     PAGES.append(build_dong(*_d))
 
 for _s in STATIONS:
