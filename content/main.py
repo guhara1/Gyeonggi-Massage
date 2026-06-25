@@ -2,7 +2,7 @@
 import json
 from .site import PHONE, PHONE_DISPLAY, BASE_URL
 from .data import REGION_GROUPS, CITIES
-from .components import price_table, faq_block, faq_schema, image_schema, byline
+from .components import price_table, faq_block, faq_schema, byline
 from .pages import (city_link, life_link, station_link, CITY_SHORT,
                     LIFE_PATH, LIFE_BY_NAME, STATION_BY_NAME, STATION_PATH, _cards)
 
@@ -142,10 +142,7 @@ def _build_main():
     }
     _ld = lambda o: ('<script type="application/ld+json">\n'
                      + json.dumps(o, ensure_ascii=False, indent=2) + "\n</script>\n")
-    extra = (_ld(webpage)
-             + image_schema("경기도 출장마사지·홈타이 지역 안내",
-                            "경기 31개 시·군 생활권·역세권별 방문 예약 안내")
-             + faq_schema(faqs))
+    extra = _ld(webpage) + faq_schema(faqs)
 
     return {
         "path": "",

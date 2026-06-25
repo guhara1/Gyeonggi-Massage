@@ -2,7 +2,7 @@
 from .site import BRAND, PHONE, PHONE_DISPLAY
 from .data import (REGION_GROUPS, CITIES, GU_DONG, CITY_DONG,
                    LIFE_AREAS, STATIONS, DONG_PAGES)
-from .components import (price_table, faq_block, faq_schema, image_schema,
+from .components import (price_table, faq_block, faq_schema,
                          byline, external_refs, reservation_note, place_section)
 
 # ---------- 조회용 인덱스 ----------
@@ -254,9 +254,7 @@ def build_city(slug, c):
     ]
     body.append(faq_block(faqs, f"{short} 출장마사지 자주 묻는 질문"))
 
-    extra = (image_schema(f"{short} 출장마사지·홈타이 지역 안내",
-                          f"{name} 생활권·역세권별 방문 예약 안내")
-             + faq_schema(faqs))
+    extra = faq_schema(faqs)
 
     desc = _desc(f"{short} 출장마사지·홈타이 예약 전 {', '.join(c['life'][:4])} 생활권 방문 지역을 확인하세요.")
     title = f"{short} 출장마사지·홈타이｜{'·'.join(c['life'][:2])} 생활권 안내"

@@ -1049,3 +1049,20 @@ strong {
 }
 .byline-meta span { display: inline-flex; align-items: center; gap: 6px; }
 .byline-note { font-size: 0.85rem; color: var(--text-dim); }
+
+/* ── 리드 이미지 (검색 썸네일·본문 대표 이미지) ───────── */
+.lead-figure {
+  margin: 0 0 26px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 40px rgba(4, 8, 18, 0.5);
+  background: var(--panel);
+}
+.lead-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1200 / 675;
+  object-fit: cover;
+}

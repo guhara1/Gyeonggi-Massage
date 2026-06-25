@@ -27,6 +27,12 @@ PUBLIC_DIR = ROOT
 # 색인 최소 본문 글자수 — 경기도 제작 지시서의 "본문 1,500자 이상" 기준에 맞춘다.
 MIN_INDEX_CHARS = 1500
 
+# 모든 지역 페이지 공통 리드 이미지(검색 썸네일·og:image용). WebP ~50KB.
+LEAD_IMAGE = "/assets/img/spa-room.webp"
+LEAD_IMAGE_W, LEAD_IMAGE_H = 1200, 675
+# 리드 이미지를 넣지 않을 페이지(정책·고객센터 등 비(非)지역 페이지)
+IMAGE_EXCLUDE = {"support/", "support/privacy/"}
+
 
 def text_length(body_html: str) -> int:
     """태그를 제거한 본문 글자수(공백 포함, 연속 공백은 1자).
@@ -164,10 +170,10 @@ def make_breadcrumb_schema(crumbs) -> dict:
     }
 
 
-def make_webpage_schema(title: str, desc: str, canonical: str) -> dict:
+def make_webpage_schema(title: str, desc: str, canonical: str, with_image: bool) -> dict:
     """페이지 단위 WebPage 스키마."""
     base = BASE_URL.rstrip("/")
-    return {
+    obj = {
         "@context": "https://schema.org",
         "@type": "WebPage",
         "name": title,
@@ -176,6 +182,23 @@ def make_webpage_schema(title: str, desc: str, canonical: str) -> dict:
         "inLanguage": "ko",
         "isPartOf": {"@id": base + "/#organization"},
         "publisher": {"@id": base + "/#organization"},
+    }
+    if with_image:
+        obj["primaryImageOfPage"] = base + LEAD_IMAGE
+    return obj
+
+
+def make_image_schema(caption: str) -> dict:
+    """선호 썸네일 지정용 ImageObject (schema.org + og:image 동시 사용)."""
+    base = BASE_URL.rstrip("/")
+    return {
+        "@context": "https://schema.org",
+        "@type": "ImageObject",
+        "contentUrl": base + LEAD_IMAGE,
+        "url": base + LEAD_IMAGE,
+        "width": LEAD_IMAGE_W,
+        "height": LEAD_IMAGE_H,
+        "caption": caption,
     }
 
 
@@ -210,16 +233,32 @@ def render_page(page: dict) -> str:
     toc_html = render_toc(toc_items)
     layout_cls = "page-layout has-toc" if toc_html else "page-layout"
 
+    # 리드 이미지(썸네일) 적용 여부 — 정책/고객센터 외 모든 페이지.
+    has_image = path not in IMAGE_EXCLUDE
+    img_caption = h1 or title
+    og_image = (BASE_URL.rstrip("/") + (LEAD_IMAGE if has_image else "/assets/og-image.png"))
+    og_w, og_h = (LEAD_IMAGE_W, LEAD_IMAGE_H) if has_image else (1200, 630)
+    lead_fig = (
+        f'<figure class="lead-figure"><img src="{LEAD_IMAGE}" '
+        f'alt="{img_caption} 방문 관리 안내 이미지" '
+        f'width="{LEAD_IMAGE_W}" height="{LEAD_IMAGE_H}" '
+        f'loading="eager" fetchpriority="high" decoding="async"></figure>'
+        if has_image else ""
+    )
+
     # 스키마 자동 주입.
     # 메인(hero 보유)은 main.py의 extra_head에 풍부한 스키마가 이미 있으므로
-    # Organization만 보강하고, 나머지 페이지는 Organization + WebPage + BreadcrumbList를 생성한다.
+    # Organization(+ImageObject)만 보강하고, 나머지 페이지는
+    # Organization + WebPage + BreadcrumbList + ImageObject를 생성한다.
     if hero:
-        auto_schema = _ld(make_org_schema())
+        blocks = [make_org_schema()]
     else:
-        blocks = [make_org_schema(), make_webpage_schema(title, desc, canonical)]
+        blocks = [make_org_schema(), make_webpage_schema(title, desc, canonical, has_image)]
         if crumbs:
             blocks.append(make_breadcrumb_schema(crumbs))
-        auto_schema = "".join(_ld(b) for b in blocks)
+    if has_image:
+        blocks.append(make_image_schema(img_caption))
+    auto_schema = "".join(_ld(b) for b in blocks)
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
@@ -235,11 +274,11 @@ def render_page(page: dict) -> str:
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{canonical}">
 <meta property="og:site_name" content="{BRAND}">
-<meta property="og:image" content="{BASE_URL.rstrip('/')}/assets/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:image" content="{og_image}">
+<meta property="og:image:width" content="{og_w}">
+<meta property="og:image:height" content="{og_h}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="{BASE_URL.rstrip('/')}/assets/og-image.png">
+<meta name="twitter:image" content="{og_image}">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=2">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png?v=2">
 <link rel="icon" href="/favicon.ico?v=2" sizes="48x48">
@@ -272,6 +311,7 @@ def render_page(page: dict) -> str:
     <article class="page-content">
       {render_breadcrumb(crumbs)}
       {h1_html}
+      {lead_fig}
       {body}
     </article>
   </div>
